@@ -98,7 +98,8 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
         logger.info("examining {}", key);
         for (Map.Entry<ByteBuffer, ByteBuffer> e : this.getNamedPkColumns(key).entrySet())
         {
-            logger.info("Checking {}", e.getValue());
+//            logger.info("Checking {}", e.getValue());
+            // TODO make sure we're looking at the right key
             if (deleted_accounts.contains(e.getValue()))
             {
                 // we found a value matching the key
