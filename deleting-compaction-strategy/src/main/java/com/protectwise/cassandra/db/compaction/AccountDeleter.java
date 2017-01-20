@@ -44,7 +44,8 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
 
     private HashSet<ByteBuffer> deleted_accounts;
 
-    public AccountDeleter(ColumnFamilyStore cfs, Map<String, String> options) {
+    public AccountDeleter(ColumnFamilyStore cfs, Map<String, String> options)
+    {
         super(cfs, options);
 
         DELETED_QUERY = options.get(DELETED_QUERY_KEY);
@@ -57,21 +58,24 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
 
         deleted_accounts = new HashSet<>();
 
-        for(UntypedResultSet.Row row: rows) {
-            // TODO: field is hard coded for POC, please fix
-            logger.info("Row {} marked for deletion", row.getBytes("videoid"));
-            deleted_accounts.add(row.getBytes("videoid"));
+        FIELD_TO_MATCH = rows.metadata().get(0).name.bytes;
+        logger.info("Field: {}", FIELD_TO_MATCH);
+
+        String colname = rows.metadata().get(0).name.toString();
+        for(UntypedResultSet.Row row: rows)
+        {
+            logger.info("id {} marked for deletion", row.getBytes(colname));
+            deleted_accounts.add(row.getBytes(colname));
         }
     }
 
     @Override
-    public boolean shouldKeepPartition(OnDiskAtomIterator key) {
-        logger.info("examining {}", key);
+    public boolean shouldKeepPartition(OnDiskAtomIterator key)
+    {
         for (Map.Entry<ByteBuffer, ByteBuffer> e : this.getNamedPkColumns(key).entrySet())
         {
-//            logger.info("Checking {}", e.getValue());
             // TODO make sure we're looking at the right key
-            if (e.getKey() == FIELD_TO_MATCH &&  deleted_accounts.contains(e.getValue()))
+            if (e.getKey().equals(FIELD_TO_MATCH) && deleted_accounts.contains(e.getValue()))
             {
                 // we found a value matching the key
                 logger.info("Matching key found, deleting {}", e.getValue());
@@ -79,16 +83,22 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
             }
         }
         return true;
-
     }
 
     @Override
-    public boolean shouldKeepCluster(OnDiskAtomIterator partition, Composite name) {
+    public boolean shouldKeepCluster(OnDiskAtomIterator partition, Composite name)
+    {
         for (ColumnDefinition def : cfs.metadata.clusteringColumns())
         {
-            if ( def.name.bytes == FIELD_TO_MATCH && deleted_accounts.contains(def.name.bytes))
+            if (def.name.bytes.equals(FIELD_TO_MATCH))
             {
-                return false;
+                ByteBuffer bytes = this.getBytes(name, def);
+//                logger.info("Matched field, Data: {}", bytes.toString());
+                if (deleted_accounts.contains(bytes))
+                {
+                    logger.info("Matching key found in shouldKeepCluster, deleting {}", bytes);
+                    return false;
+                }
             }
         }
         return true;
