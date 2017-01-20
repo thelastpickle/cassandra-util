@@ -40,7 +40,7 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
     private static String DELETED_QUERY_KEY = "deleted_query";
     private static String DELETED_QUERY;
 
-    private static String FIELD_TO_MATCH;
+    private static ByteBuffer FIELD_TO_MATCH;
 
     private HashSet<ByteBuffer> deleted_accounts;
 
@@ -48,7 +48,7 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
         super(cfs, options);
 
         DELETED_QUERY = options.get(DELETED_QUERY_KEY);
-        FIELD_TO_MATCH = options.get("field_to_match");
+        FIELD_TO_MATCH = ByteBufferUtil.bytes(options.get("field_to_match"));
 
         logger.info("Using account deleter with {}", DELETED_QUERY);
 
@@ -64,35 +64,6 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
         }
     }
 
-    /**
-     * Returns true if value is found inside one of the ranges defined.
-     *
-     * @param ranges
-     * @param value
-     * @return
-     */
-    protected boolean testRule(ByteBuffer[][] ranges, ByteBuffer value)
-    {
-        if (value == null)
-        {
-            logger.warn("Null value");
-            return false;
-        }
-        for (ByteBuffer[] range : ranges)
-        {
-            // Null values indicate unbounded.  range[0] is the lower bound inclusive, range[1] is the upper bound inclusive.
-            // We are guaranteed both values exist before we get to this point.
-            if (
-                    (range[0] == null || ByteBufferUtil.compareUnsigned(range[0], value) <= 0)
-                            && (range[1] == null || ByteBufferUtil.compareUnsigned(range[1], value) >= 0)
-                    )
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     public boolean shouldKeepPartition(OnDiskAtomIterator key) {
         logger.info("examining {}", key);
@@ -100,7 +71,7 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
         {
 //            logger.info("Checking {}", e.getValue());
             // TODO make sure we're looking at the right key
-            if (deleted_accounts.contains(e.getValue()))
+            if (e.getKey() == FIELD_TO_MATCH &&  deleted_accounts.contains(e.getValue()))
             {
                 // we found a value matching the key
                 logger.info("Matching key found, deleting {}", e.getValue());
@@ -113,15 +84,11 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
 
     @Override
     public boolean shouldKeepCluster(OnDiskAtomIterator partition, Composite name) {
-//        logger.info("examining {} // {}", partition.getKey(), name);
         for (ColumnDefinition def : cfs.metadata.clusteringColumns())
         {
-            if (deleted_accounts.contains(def.name.bytes))
+            if ( def.name.bytes == FIELD_TO_MATCH && deleted_accounts.contains(def.name.bytes))
             {
                 return false;
-//                ByteBuffer[][] rule = rules.get(def.name.bytes);
-//                ByteBuffer value = this.getBytes(name, def);
-//                return !testRule(rule, value);
             }
         }
         return true;
