@@ -19,7 +19,7 @@ import com.protectwise.cassandra.db.compaction.AbstractClusterDeletingConvictor;
 import com.protectwise.cassandra.db.compaction.AbstractSimpleDeletingConvictor;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
-import org.apache.cassandra.dht.LongToken;
+import org.apache.cassandra.dht.Murmur3Partitioner.LongToken;
 import org.apache.cassandra.dht.Token;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +49,7 @@ public class OddTokenDeleter extends AbstractSimpleDeletingConvictor
 		Token token = key.getKey().getToken();
 		if (token instanceof LongToken)
 		{
-			return ((LongToken) token).getTokenValue() % 2 == 0;
+			return ((long) ((LongToken) token).getTokenValue()) % 2 == 0;
 		}
 		else
 		{

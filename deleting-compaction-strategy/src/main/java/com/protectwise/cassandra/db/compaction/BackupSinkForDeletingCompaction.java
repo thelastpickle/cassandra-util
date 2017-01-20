@@ -17,8 +17,7 @@ package com.protectwise.cassandra.db.compaction;
 
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
-import org.apache.cassandra.io.sstable.SSTableWriter;
-import org.apache.cassandra.io.sstable.metadata.MetadataCollector;
+import org.apache.cassandra.io.sstable.format.SSTableWriter;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +42,12 @@ public class BackupSinkForDeletingCompaction implements IDeletedRecordsSink
 	public BackupSinkForDeletingCompaction(ColumnFamilyStore cfs, File targetDirectory)
 	{
 		// TODO: Wow, this key estimate is probably grossly over-estimated...  Not sure how to get a better one here.
-		this(cfs, targetDirectory, cfs.estimateKeys() / cfs.getLiveSSTableCount());
+		// Need to check if this keyEstimate divisor is correct. Unsure if we should be using ColumnFamilyMetrics here
+		// to get the live SSTable count. The problem is the 'this' object identifier needs to be the first call in the
+		// constructor which means we are unable instance of the ColumnFamilyMetrics class prior to the call. For now
+		// we will reach into the ColumnFamilyStore class and obtain the value from the tracker which is what the
+		// ColumnFamilyMetrics class does.
+		this(cfs, targetDirectory, cfs.estimateKeys() / cfs.getTracker().getSSTables().size());
 	}
 
 	public BackupSinkForDeletingCompaction(ColumnFamilyStore cfs, File targetDirectory, long keyEstimate)
@@ -96,14 +100,7 @@ public class BackupSinkForDeletingCompaction implements IDeletedRecordsSink
 	@Override
 	public void begin()
 	{
-		writer = new SSTableWriter(
-				cfs.getTempSSTablePath(targetDirectory),
-				keysPerSSTable,
-				ActiveRepairService.UNREPAIRED_SSTABLE,
-				cfs.metadata,
-				cfs.partitioner,
-				new MetadataCollector(cfs.metadata.comparator)
-		);
+		writer = SSTableWriter.create(cfs.getTempSSTablePath(targetDirectory), keysPerSSTable, ActiveRepairService.UNREPAIRED_SSTABLE);
 		logger.info("Opening backup writer for {}", writer.getFilename());
 	}
 
