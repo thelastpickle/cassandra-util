@@ -29,8 +29,8 @@ import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.sstable.ISSTableScanner;
-import org.apache.cassandra.io.sstable.SSTableReader;
-import org.apache.cassandra.io.sstable.SSTableScanner;
+import org.apache.cassandra.io.sstable.format.SSTableReader;
+import org.apache.cassandra.io.sstable.format.big.BigTableScanner;
 import org.apache.cassandra.utils.concurrent.OpOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,12 +194,12 @@ public class FilteringSSTableScanner implements ISSTableScanner
 
 	public static ISSTableScanner getScanner(SSTableReader sstable, DataRange dataRange, RateLimiter limiter)
 	{
-		return SSTableScanner.getScanner(sstable, dataRange, limiter);
+		return BigTableScanner.getScanner(sstable, dataRange, limiter);
 	}
 
 	public static ISSTableScanner getScanner(SSTableReader sstable, Collection<Range<Token>> tokenRanges, RateLimiter limiter)
 	{
-		return SSTableScanner.getScanner(sstable, tokenRanges, limiter);
+		return BigTableScanner.getScanner(sstable, tokenRanges, limiter);
 	}
 
 	@Override

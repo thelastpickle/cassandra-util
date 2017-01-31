@@ -28,12 +28,13 @@ import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Memtable;
 import org.apache.cassandra.db.compaction.AbstractCompactionStrategy;
 import org.apache.cassandra.db.compaction.AbstractCompactionTask;
+import org.apache.cassandra.db.lifecycle.LifecycleTransaction;
 import org.apache.cassandra.dht.*;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.io.sstable.ISSTableScanner;
-import org.apache.cassandra.io.sstable.SSTableReader;
-import org.apache.cassandra.io.sstable.SSTableWriter;
+import org.apache.cassandra.io.sstable.format.SSTableReader;
+import org.apache.cassandra.io.sstable.format.SSTableWriter;
 import org.apache.cassandra.io.sstable.metadata.MetadataCollector;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.slf4j.Logger;
@@ -144,9 +145,9 @@ public class DeletingCompactionStrategy extends AbstractCompactionStrategy
     }
 
     @Override
-    public Collection<AbstractCompactionTask> getMaximalTask(int gcBefore)
+    public Collection<AbstractCompactionTask> getMaximalTask(int gcBefore, boolean splitOutput)
     {
-        return underlying.getMaximalTask(gcBefore);
+        return underlying.getMaximalTask(gcBefore, splitOutput);
     }
 
     @Override
@@ -156,9 +157,9 @@ public class DeletingCompactionStrategy extends AbstractCompactionStrategy
     }
 
     @Override
-    public AbstractCompactionTask getCompactionTask(Collection<SSTableReader> sstables, int gcBefore, long maxSSTableBytes)
+    public AbstractCompactionTask getCompactionTask(LifecycleTransaction txn, int gcBefore, long maxSSTableBytes)
     {
-        return underlying.getCompactionTask(sstables, gcBefore, maxSSTableBytes);
+        return underlying.getCompactionTask(txn, gcBefore, maxSSTableBytes);
     }
 
     @Override
