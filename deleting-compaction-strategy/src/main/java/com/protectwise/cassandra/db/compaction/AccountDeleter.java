@@ -59,12 +59,11 @@ public class AccountDeleter extends AbstractClusterDeletingConvictor {
         deleted_accounts = new HashSet<>();
 
         FIELD_TO_MATCH = rows.metadata().get(0).name.bytes;
-        logger.info("Field: {}", FIELD_TO_MATCH);
+//        logger.info("Field: {}", FIELD_TO_MATCH);
 
         String colname = rows.metadata().get(0).name.toString();
         for(UntypedResultSet.Row row: rows)
         {
-            logger.info("id {} marked for deletion", row.getBytes(colname));
             deleted_accounts.add(row.getBytes(colname));
         }
     }
